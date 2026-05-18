@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "@/assets/cuh-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Test de Liderazgo — CUH" },
-      { name: "description", content: "Descubre tu tipo de liderazgo con el Test del Centro Universitario Hidalguense." },
+      {
+        name: "description",
+        content:
+          "Descubre tu estilo de liderazgo con el test oficial del Centro Universitario Hidalguense.",
+      },
     ],
   }),
   component: LeadershipTest,
@@ -23,12 +27,12 @@ type LeaderType =
   | "Marcapasos"
   | "Coach";
 
-const SCALE: { label: string; value: number }[] = [
-  { label: "Nunca", value: 1 },
-  { label: "Rara vez", value: 2 },
-  { label: "A veces", value: 3 },
-  { label: "Frecuentemente", value: 4 },
-  { label: "Siempre", value: 5 },
+const SCALE: { label: string; short: string; value: number }[] = [
+  { label: "Nunca", short: "N", value: 1 },
+  { label: "Rara vez", short: "RV", value: 2 },
+  { label: "A veces", short: "AV", value: 3 },
+  { label: "Frecuentemente", short: "F", value: 4 },
+  { label: "Siempre", short: "S", value: 5 },
 ];
 
 const QUESTIONS: { type: LeaderType; text: string }[] = [
@@ -58,9 +62,23 @@ const QUESTIONS: { type: LeaderType; text: string }[] = [
   { type: "Coach", text: "Me interesa que las personas crezcan profesionalmente." },
 ];
 
-const DESCRIPTIONS: Record<LeaderType, { tagline: string; traits: string[] }> = {
+const TYPES: LeaderType[] = [
+  "Coercitivo",
+  "Visionario",
+  "Afiliativo",
+  "Democrático",
+  "Marcapasos",
+  "Coach",
+];
+
+const DESCRIPTIONS: Record<
+  LeaderType,
+  { tagline: string; essence: string; traits: string[] }
+> = {
   Coercitivo: {
-    tagline: "Líder directo, decidido y orientado a la acción inmediata.",
+    tagline: "Decisión, control y acción inmediata.",
+    essence:
+      "Lideras desde la firmeza. Cuando otros dudan, tú decides; cuando otros analizan, tú actúas.",
     traits: [
       "Toma decisiones rápidas bajo presión.",
       "Comunica instrucciones claras y firmes.",
@@ -69,7 +87,9 @@ const DESCRIPTIONS: Record<LeaderType, { tagline: string; traits: string[] }> = 
     ],
   },
   Visionario: {
-    tagline: "Líder inspirador que guía con propósito y dirección clara.",
+    tagline: "Inspiración, propósito y dirección clara.",
+    essence:
+      "Tu liderazgo se sostiene en el futuro. Conectas a las personas con un porqué más grande que la tarea.",
     traits: [
       "Transmite entusiasmo y sentido de propósito.",
       "Comunica una visión clara del futuro.",
@@ -78,7 +98,9 @@ const DESCRIPTIONS: Record<LeaderType, { tagline: string; traits: string[] }> = 
     ],
   },
   Afiliativo: {
-    tagline: "Líder cercano que prioriza las personas y el ambiente del equipo.",
+    tagline: "Personas, vínculos y armonía.",
+    essence:
+      "Diriges cuidando a las personas. Construyes equipos donde se trabaja mejor porque se está mejor.",
     traits: [
       "Construye relaciones de confianza.",
       "Cuida el bienestar emocional del equipo.",
@@ -87,7 +109,9 @@ const DESCRIPTIONS: Record<LeaderType, { tagline: string; traits: string[] }> = 
     ],
   },
   Democrático: {
-    tagline: "Líder participativo que decide escuchando al equipo.",
+    tagline: "Participación, escucha y consenso.",
+    essence:
+      "Tu fuerza está en la conversación. Las decisiones cobran sentido cuando todos se sienten parte.",
     traits: [
       "Valora todas las opiniones antes de decidir.",
       "Construye acuerdos en conjunto.",
@@ -96,7 +120,9 @@ const DESCRIPTIONS: Record<LeaderType, { tagline: string; traits: string[] }> = 
     ],
   },
   Marcapasos: {
-    tagline: "Líder exigente que marca el ritmo con altos estándares.",
+    tagline: "Excelencia, ritmo y altos estándares.",
+    essence:
+      "Lideras con el ejemplo. Pones el listón alto y esperas que el equipo se eleve para alcanzarlo.",
     traits: [
       "Pone el ejemplo con excelencia personal.",
       "Mantiene estándares muy altos de calidad.",
@@ -105,7 +131,9 @@ const DESCRIPTIONS: Record<LeaderType, { tagline: string; traits: string[] }> = 
     ],
   },
   Coach: {
-    tagline: "Líder formador que desarrolla el potencial de cada persona.",
+    tagline: "Desarrollo, mentoría y crecimiento.",
+    essence:
+      "Lideras formando a otros. Tu mayor logro es ver crecer a las personas que acompañas.",
     traits: [
       "Acompaña el crecimiento profesional del equipo.",
       "Da retroalimentación constructiva y oportuna.",
@@ -122,85 +150,74 @@ function LeadershipTest() {
   const [name, setName] = useState("");
   const [answers, setAnswers] = useState<Record<number, number>>({});
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [step]);
+
   const setAnswer = (i: number, v: number) =>
     setAnswers((prev) => ({ ...prev, [i]: v }));
-
-  const page1Range = [0, 12] as const;
-  const page2Range = [12, 24] as const;
 
   const allAnsweredIn = (from: number, to: number) =>
     Array.from({ length: to - from }, (_, i) => i + from).every(
       (i) => answers[i] !== undefined,
     );
 
-  const computeResult = (): LeaderType => {
-    const totals: Record<LeaderType, number> = {
+  const computeTotals = (): Record<LeaderType, number> => {
+    const totals = {
       Coercitivo: 0,
       Visionario: 0,
       Afiliativo: 0,
       Democrático: 0,
       Marcapasos: 0,
       Coach: 0,
-    };
+    } as Record<LeaderType, number>;
     QUESTIONS.forEach((q, i) => {
       totals[q.type] += answers[i] ?? 0;
     });
-    return (Object.entries(totals) as [LeaderType, number][]).sort(
-      (a, b) => b[1] - a[1],
-    )[0][0];
+    return totals;
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <img src={logo} alt="Centro Universitario Hidalguense" className="h-12 w-auto" />
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Test de Liderazgo
-          </span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+      <SiteHeader />
 
-      <section className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
+      <main className="mx-auto w-full max-w-3xl px-4 pb-16 pt-6 sm:px-6 sm:pt-10">
         {step === "intro" && (
           <Intro name={name} setName={setName} onStart={() => setStep("page1")} />
         )}
 
         {step === "page1" && (
           <QuestionPage
-            title="Sección 1 de 2"
-            subtitle="Responde con honestidad. No hay respuestas correctas."
-            from={page1Range[0]}
-            to={page1Range[1]}
+            sectionIndex={1}
+            from={0}
+            to={12}
             answers={answers}
             setAnswer={setAnswer}
             onBack={() => setStep("intro")}
             onNext={() => setStep("page2")}
-            canContinue={allAnsweredIn(...page1Range)}
-            progress={Object.keys(answers).length}
+            canContinue={allAnsweredIn(0, 12)}
+            nextLabel="Continuar"
           />
         )}
 
         {step === "page2" && (
           <QuestionPage
-            title="Sección 2 de 2"
-            subtitle="Última parte. Estás por descubrir tu estilo."
-            from={page2Range[0]}
-            to={page2Range[1]}
+            sectionIndex={2}
+            from={12}
+            to={24}
             answers={answers}
             setAnswer={setAnswer}
             onBack={() => setStep("page1")}
             onNext={() => setStep("result")}
-            canContinue={allAnsweredIn(...page2Range)}
-            progress={Object.keys(answers).length}
-            finishLabel="Ver resultado"
+            canContinue={allAnsweredIn(12, 24)}
+            nextLabel="Ver resultado"
           />
         )}
 
         {step === "result" && (
           <Result
             name={name}
-            type={computeResult()}
+            totals={computeTotals()}
             onRestart={() => {
               setAnswers({});
               setName("");
@@ -208,12 +225,34 @@ function LeadershipTest() {
             }}
           />
         )}
-      </section>
+      </main>
 
-      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Centro Universitario Hidalguense
+      <footer className="border-t border-border bg-card">
+        <div className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-muted-foreground sm:px-6">
+          © {new Date().getFullYear()} Centro Universitario Hidalguense · Test de Liderazgo
+        </div>
       </footer>
-    </main>
+    </div>
+  );
+}
+
+function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        <img
+          src={logo}
+          alt="Centro Universitario Hidalguense"
+          className="h-9 w-auto sm:h-11"
+        />
+        <div className="text-right">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:text-xs">
+            Liderazgo
+          </p>
+          <p className="text-[10px] text-muted-foreground sm:text-xs">Evaluación CUH</p>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -228,49 +267,72 @@ function Intro({
 }) {
   const trimmed = name.trim();
   return (
-    <div className="rounded-xl border border-border bg-card p-8 sm:p-12 shadow-sm">
-      <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
-        Descubre tu tipo de liderazgo
-      </h1>
-      <p className="mt-4 text-base text-muted-foreground leading-relaxed">
-        Este test consta de <span className="font-medium text-foreground">24 afirmaciones</span> divididas
-        en dos secciones. Selecciona la opción que mejor describa tu comportamiento habitual.
-        Toma aproximadamente 5 minutos.
-      </p>
+    <section className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+      <div className="absolute inset-x-0 top-0 h-1.5 bg-primary" />
+      <div className="px-6 py-10 sm:px-12 sm:py-14">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+          Test de Liderazgo
+        </p>
+        <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-5xl md:text-6xl">
+          Descubre el líder
+          <br />
+          <span className="italic text-primary">que ya eres.</span>
+        </h1>
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          Una evaluación breve de <span className="font-medium text-foreground">24 afirmaciones</span>{" "}
+          para identificar tu estilo predominante de liderazgo entre seis perfiles reconocidos.
+          Honestidad por encima de respuestas ideales.
+        </p>
 
-      <div className="mt-8 space-y-2">
-        <Label htmlFor="name" className="text-sm font-medium">
-          Nombre completo
-        </Label>
-        <Input
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Escribe tu nombre"
-          className="h-12 text-base"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && trimmed) onStart();
-          }}
-        />
-      </div>
+        <div className="mt-8 grid grid-cols-3 gap-3 sm:gap-6">
+          <Stat label="Preguntas" value="24" />
+          <Stat label="Secciones" value="2" />
+          <Stat label="Minutos" value="≈5" />
+        </div>
 
-      <div className="mt-8 flex justify-end">
+        <div className="mt-10 space-y-3">
+          <Label htmlFor="name" className="text-sm font-medium text-foreground">
+            ¿Cuál es tu nombre?
+          </Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Escribe tu nombre completo"
+            className="h-14 rounded-xl border-border bg-background text-base"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && trimmed) onStart();
+            }}
+            autoFocus
+          />
+        </div>
+
         <Button
           size="lg"
           disabled={!trimmed}
           onClick={onStart}
-          className="h-12 px-8 text-base"
+          className="mt-6 h-14 w-full rounded-xl text-base font-semibold sm:w-auto sm:px-10"
         >
-          Comenzar test
+          Comenzar el test →
         </Button>
       </div>
+    </section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/60 px-3 py-4 text-center sm:px-4 sm:py-5">
+      <p className="font-display text-2xl font-semibold text-primary sm:text-3xl">{value}</p>
+      <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground sm:text-xs">
+        {label}
+      </p>
     </div>
   );
 }
 
 function QuestionPage({
-  title,
-  subtitle,
+  sectionIndex,
   from,
   to,
   answers,
@@ -278,11 +340,9 @@ function QuestionPage({
   onBack,
   onNext,
   canContinue,
-  progress,
-  finishLabel = "Siguiente",
+  nextLabel,
 }: {
-  title: string;
-  subtitle: string;
+  sectionIndex: 1 | 2;
   from: number;
   to: number;
   answers: Record<number, number>;
@@ -290,21 +350,43 @@ function QuestionPage({
   onBack: () => void;
   onNext: () => void;
   canContinue: boolean;
-  progress: number;
-  finishLabel?: string;
+  nextLabel: string;
 }) {
+  const answeredInSection = Array.from({ length: to - from }, (_, i) => i + from).filter(
+    (i) => answers[i] !== undefined,
+  ).length;
+  const totalInSection = to - from;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary">{title}</p>
-        <h2 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight">{subtitle}</h2>
-        <div className="mt-4 h-1.5 w-full rounded-full bg-muted">
+    <section className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary sm:text-xs">
+              Sección {sectionIndex} de 2
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+              {sectionIndex === 1
+                ? "Comencemos por lo esencial"
+                : "Última parte, casi listo"}
+            </h2>
+          </div>
+          <div className="text-right">
+            <p className="font-display text-2xl font-semibold text-primary sm:text-3xl">
+              {answeredInSection}
+              <span className="text-muted-foreground">/{totalInSection}</span>
+            </p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
+              respondidas
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-secondary">
           <div
-            className="h-1.5 rounded-full bg-primary transition-all"
-            style={{ width: `${(progress / 24) * 100}%` }}
+            className="h-full rounded-full bg-primary transition-all duration-500"
+            style={{ width: `${(answeredInSection / totalInSection) * 100}%` }}
           />
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{progress} / 24 respondidas</p>
       </div>
 
       <ol className="space-y-4">
@@ -313,19 +395,21 @@ function QuestionPage({
           return (
             <li
               key={i}
-              className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm"
+              className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-md bg-secondary text-sm font-semibold text-secondary-foreground">
+              <div className="flex items-start gap-4 px-5 pt-5 sm:px-7 sm:pt-6">
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-primary font-display text-sm font-semibold text-primary-foreground">
                   {i + 1}
                 </span>
-                <p className="text-base leading-relaxed text-foreground">{q.text}</p>
+                <p className="pt-1 text-[15px] font-medium leading-relaxed text-foreground sm:text-base">
+                  {q.text}
+                </p>
               </div>
 
               <div
                 role="radiogroup"
                 aria-label={`Pregunta ${i + 1}`}
-                className="mt-5 grid grid-cols-5 gap-2"
+                className="mt-5 grid grid-cols-5 gap-1.5 border-t border-border bg-secondary/40 p-3 sm:gap-2 sm:p-4"
               >
                 {SCALE.map((s) => {
                   const selected = answers[i] === s.value;
@@ -337,39 +421,45 @@ function QuestionPage({
                       aria-checked={selected}
                       onClick={() => setAnswer(i, s.value)}
                       className={[
-                        "group flex flex-col items-center gap-2 rounded-lg border p-2 sm:p-3 transition-colors",
+                        "group flex flex-col items-center gap-1.5 rounded-xl border-2 px-1 py-2.5 transition-all sm:gap-2 sm:py-3",
                         selected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background hover:border-primary hover:bg-accent",
+                          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                          : "border-transparent bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/40",
                       ].join(" ")}
                     >
                       <span
                         className={[
-                          "flex h-5 w-5 items-center justify-center rounded border-2 transition-colors",
+                          "flex h-5 w-5 items-center justify-center rounded-md border-2 transition-colors",
                           selected
-                            ? "border-primary-foreground bg-primary-foreground"
+                            ? "border-primary-foreground bg-primary-foreground text-primary"
                             : "border-muted-foreground/40 bg-background",
                         ].join(" ")}
+                        aria-hidden
                       >
                         {selected && (
                           <svg
                             viewBox="0 0 20 20"
-                            className="h-3 w-3 text-primary"
+                            className="h-3.5 w-3.5"
                             fill="none"
                             stroke="currentColor"
                             strokeWidth="3"
                           >
-                            <path d="M4 10l4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
+                            <path
+                              d="M4 10l4 4 8-8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         )}
                       </span>
                       <span
                         className={[
-                          "text-[11px] sm:text-xs font-medium text-center leading-tight",
-                          selected ? "text-primary-foreground" : "text-muted-foreground",
+                          "text-center text-[10px] font-semibold leading-tight sm:text-[11px]",
+                          selected ? "text-primary-foreground" : "",
                         ].join(" ")}
                       >
-                        {s.label}
+                        <span className="sm:hidden">{s.short}</span>
+                        <span className="hidden sm:inline">{s.label}</span>
                       </span>
                     </button>
                   );
@@ -380,66 +470,167 @@ function QuestionPage({
         })}
       </ol>
 
-      <div className="flex items-center justify-between gap-4 pt-2">
-        <Button variant="outline" size="lg" onClick={onBack} className="h-12">
-          Atrás
+      {/* Inline action row (desktop) */}
+      <div className="hidden items-center justify-between gap-3 sm:flex">
+        <Button variant="outline" size="lg" onClick={onBack} className="h-12 rounded-xl">
+          ← Atrás
         </Button>
         <Button
           size="lg"
-          onClick={() => {
-            onNext();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
+          onClick={onNext}
           disabled={!canContinue}
-          className="h-12 px-8"
+          className="h-12 rounded-xl px-8 font-semibold"
         >
-          {finishLabel}
+          {nextLabel} →
         </Button>
       </div>
-    </div>
+
+      {/* Sticky bottom bar (mobile) */}
+      <div className="sticky bottom-0 -mx-4 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:hidden">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="h-12 flex-1 rounded-xl text-sm"
+          >
+            Atrás
+          </Button>
+          <Button
+            onClick={onNext}
+            disabled={!canContinue}
+            className="h-12 flex-[2] rounded-xl text-sm font-semibold"
+          >
+            {canContinue ? `${nextLabel} →` : `Responde ${totalInSection - answeredInSection} más`}
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 
 function Result({
   name,
-  type,
+  totals,
   onRestart,
 }: {
   name: string;
-  type: LeaderType;
+  totals: Record<LeaderType, number>;
   onRestart: () => void;
 }) {
-  const info = DESCRIPTIONS[type];
-  return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-8 sm:p-12 shadow-sm">
-        <p className="text-sm text-muted-foreground">{name}</p>
-        <p className="mt-6 text-sm font-medium uppercase tracking-widest text-primary">
-          Tu tipo de liderazgo es
-        </p>
-        <h1 className="mt-2 text-4xl sm:text-5xl font-semibold tracking-tight text-primary">
-          {type}
-        </h1>
-        <p className="mt-4 text-base text-muted-foreground leading-relaxed">{info.tagline}</p>
-      </div>
+  const ranked = (Object.entries(totals) as [LeaderType, number][]).sort(
+    (a, b) => b[1] - a[1],
+  );
+  const winner = ranked[0][0];
+  const max = ranked[0][1] || 1;
+  const info = DESCRIPTIONS[winner];
+  const firstName = name.trim().split(/\s+/)[0];
 
-      <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-        <h2 className="text-lg font-semibold tracking-tight">Características</h2>
-        <ul className="mt-4 space-y-3">
-          {info.traits.map((t) => (
-            <li key={t} className="flex items-start gap-3 text-sm sm:text-base text-foreground">
-              <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
-              <span className="leading-relaxed">{t}</span>
+  return (
+    <section className="space-y-6">
+      {/* Hero card */}
+      <article className="relative overflow-hidden rounded-3xl border border-border bg-primary text-primary-foreground shadow-sm">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary-foreground/5" />
+        <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-primary-foreground/5" />
+
+        <div className="relative px-6 py-10 sm:px-12 sm:py-14">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary-foreground/70">
+            Resultado · {firstName}
+          </p>
+          <p className="mt-6 font-display text-base italic text-primary-foreground/80 sm:text-lg">
+            Tu tipo de liderazgo es
+          </p>
+          <h1 className="mt-2 font-display text-5xl font-semibold leading-[1] tracking-tight sm:text-7xl">
+            {winner}
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-primary-foreground/90 sm:text-lg">
+            {info.essence}
+          </p>
+
+          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-2 text-xs font-medium uppercase tracking-widest">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+            {info.tagline}
+          </div>
+        </div>
+      </article>
+
+      {/* Traits */}
+      <article className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
+        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+          Lo que te define
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Rasgos característicos del perfil <span className="font-medium text-foreground">{winner}</span>
+        </p>
+        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+          {info.traits.map((t, i) => (
+            <li
+              key={t}
+              className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/50 p-4"
+            >
+              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-primary font-display text-xs font-semibold text-primary-foreground">
+                {i + 1}
+              </span>
+              <span className="pt-1 text-sm leading-relaxed text-foreground sm:text-[15px]">
+                {t}
+              </span>
             </li>
           ))}
         </ul>
-      </div>
+      </article>
 
-      <div className="flex justify-end">
-        <Button variant="outline" size="lg" onClick={onRestart} className="h-12">
+      {/* Score breakdown */}
+      <article className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
+        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+          Tu perfil completo
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Puntuación obtenida en cada uno de los seis estilos.
+        </p>
+        <ul className="mt-6 space-y-4">
+          {TYPES.map((t) => {
+            const score = totals[t];
+            const pct = (score / max) * 100;
+            const isWinner = t === winner;
+            return (
+              <li key={t}>
+                <div className="mb-1.5 flex items-baseline justify-between">
+                  <span
+                    className={[
+                      "text-sm font-semibold sm:text-base",
+                      isWinner ? "text-primary" : "text-foreground",
+                    ].join(" ")}
+                  >
+                    {t}
+                  </span>
+                  <span className="font-display text-sm tabular-nums text-muted-foreground sm:text-base">
+                    {score} <span className="text-xs">pts</span>
+                  </span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={[
+                      "h-full rounded-full transition-all duration-700",
+                      isWinner ? "bg-primary" : "bg-muted-foreground/40",
+                    ].join(" ")}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </article>
+
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={onRestart}
+          className="h-12 rounded-xl"
+        >
           Realizar otro test
         </Button>
       </div>
-    </div>
+    </section>
   );
 }
