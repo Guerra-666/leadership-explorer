@@ -520,9 +520,9 @@ function Result({
   const ranked = (Object.entries(totals) as [LeaderType, number][]).sort(
     (a, b) => b[1] - a[1],
   );
-  const winner = ranked[0][0];
   const max = ranked[0][1] || 1;
-  const info = DESCRIPTIONS[winner];
+  const winners = ranked.filter(([_, score]) => score === max).map(([type]) => type);
+  const isTie = winners.length > 1;
   const firstName = name.trim().split(/\s+/)[0];
 
   return (
@@ -537,46 +537,77 @@ function Result({
             Resultado · {firstName}
           </p>
           <p className="mt-6 font-display text-base italic text-primary-foreground/80 sm:text-lg">
-            Tu tipo de liderazgo es
+            {isTie ? "Tus tipos de liderazgo son" : "Tu tipo de liderazgo es"}
           </p>
-          <h1 className="mt-2 font-display text-5xl font-semibold leading-[1] tracking-tight sm:text-7xl">
-            {winner}
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-primary-foreground/90 sm:text-lg">
-            {info.essence}
-          </p>
+          <div className="mt-3 space-y-2">
+            {winners.map((w, i) => (
+              <h1
+                key={w}
+                className="font-display text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl"
+              >
+                {isTie && <span className="mr-2 text-primary-foreground/50">{i + 1}.</span>}
+                {w}
+              </h1>
+            ))}
+          </div>
 
-          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-2 text-xs font-medium uppercase tracking-widest">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-            {info.tagline}
+          {isTie ? (
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-primary-foreground/90 sm:text-lg">
+              Obtuviste la misma puntuación en {winners.length} perfiles. Esto significa que combinas
+              fortalezas de distintos estilos y puedes adaptar tu liderazgo según el contexto.
+            </p>
+          ) : (
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-primary-foreground/90 sm:text-lg">
+              {DESCRIPTIONS[winners[0]].essence}
+            </p>
+          )}
+
+          <div className="mt-8 flex flex-wrap gap-2">
+            {winners.map((w) => (
+              <div
+                key={w}
+                className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-2 text-xs font-medium uppercase tracking-widest"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                {DESCRIPTIONS[w].tagline}
+              </div>
+            ))}
           </div>
         </div>
       </article>
 
-      {/* Traits */}
-      <article className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
-        <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-          Lo que te define
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Rasgos característicos del perfil <span className="font-medium text-foreground">{winner}</span>
-        </p>
-        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-          {info.traits.map((t, i) => (
-            <li
-              key={t}
-              className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/50 p-4"
-            >
-              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-primary font-display text-xs font-semibold text-primary-foreground">
-                {i + 1}
-              </span>
-              <span className="pt-1 text-sm leading-relaxed text-foreground sm:text-[15px]">
-                {t}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </article>
+      {/* Per-winner traits */}
+      {winners.map((w) => (
+        <article
+          key={w}
+          className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10"
+        >
+          <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            {w}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {DESCRIPTIONS[w].tagline}
+          </p>
+          <p className="mt-3 max-w-xl text-base leading-relaxed text-muted-foreground">
+            {DESCRIPTIONS[w].essence}
+          </p>
+          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+            {DESCRIPTIONS[w].traits.map((t, i) => (
+              <li
+                key={t}
+                className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/50 p-4"
+              >
+                <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-primary font-display text-xs font-semibold text-primary-foreground">
+                  {i + 1}
+                </span>
+                <span className="pt-1 text-sm leading-relaxed text-foreground sm:text-[15px]">
+                  {t}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))}
 
       {/* Score breakdown */}
       <article className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
@@ -590,7 +621,7 @@ function Result({
           {TYPES.map((t) => {
             const score = totals[t];
             const pct = (score / max) * 100;
-            const isWinner = t === winner;
+            const isWinner = winners.includes(t);
             return (
               <li key={t}>
                 <div className="mb-1.5 flex items-baseline justify-between">
