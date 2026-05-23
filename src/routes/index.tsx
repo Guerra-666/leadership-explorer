@@ -409,7 +409,7 @@ function QuestionPage({
               <div
                 role="radiogroup"
                 aria-label={`Pregunta ${i + 1}`}
-                className="mt-5 grid grid-cols-5 gap-1.5 border-t border-border bg-secondary/40 p-3 sm:gap-2 sm:p-4"
+                className="mt-5 flex flex-col gap-2 border-t border-border bg-secondary/40 p-3 sm:grid sm:grid-cols-5 sm:gap-2 sm:p-4"
               >
                 {SCALE.map((s) => {
                   const selected = answers[i] === s.value;
@@ -421,7 +421,7 @@ function QuestionPage({
                       aria-checked={selected}
                       onClick={() => setAnswer(i, s.value)}
                       className={[
-                        "group flex flex-col items-center gap-1.5 rounded-xl border-2 px-1 py-2.5 transition-all sm:gap-2 sm:py-3",
+                        "group flex w-full flex-row items-center gap-3 rounded-xl border-2 px-4 py-3 transition-all sm:flex-col sm:items-center sm:gap-2 sm:px-1 sm:py-3",
                         selected
                           ? "border-primary bg-primary text-primary-foreground shadow-sm"
                           : "border-transparent bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/40",
@@ -429,7 +429,7 @@ function QuestionPage({
                     >
                       <span
                         className={[
-                          "flex h-5 w-5 items-center justify-center rounded-md border-2 transition-colors",
+                          "flex h-5 w-5 flex-none items-center justify-center rounded-md border-2 transition-colors",
                           selected
                             ? "border-primary-foreground bg-primary-foreground text-primary"
                             : "border-muted-foreground/40 bg-background",
@@ -454,12 +454,11 @@ function QuestionPage({
                       </span>
                       <span
                         className={[
-                          "text-center text-[10px] font-semibold leading-tight sm:text-[11px]",
+                          "text-sm font-semibold leading-tight sm:text-center sm:text-[11px]",
                           selected ? "text-primary-foreground" : "",
                         ].join(" ")}
                       >
-                        <span className="sm:hidden">{s.short}</span>
-                        <span className="hidden sm:inline">{s.label}</span>
+                        {s.label}
                       </span>
                     </button>
                   );
